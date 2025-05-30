@@ -1,0 +1,91 @@
+.navbar {
+  @apply bg-white shadow-md;
+}
+
+.navbar-container {
+  @apply container mx-auto px-4;
+}
+
+.navbar-content {
+  @apply flex items-center justify-between h-16;
+}
+
+.navbar-brand {
+  @apply text-xl font-bold text-blue-600;
+}
+
+.navbar-menu {
+  @apply hidden md:flex items-center space-x-4;
+}
+
+.navbar-menu-mobile {
+  @apply md:hidden;
+}
+
+.navbar-link {
+  @apply text-gray-600 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200;
+}
+
+.navbar-link-active {
+  @apply text-blue-600 hover:text-blue-700;
+}
+
+.navbar-button {
+  @apply btn btn-primary;
+}
+
+.navbar-mobile-menu {
+  @apply fixed inset-0 bg-white z-50 transform transition-transform duration-300 ease-in-out;
+}
+
+.navbar-mobile-menu-open {
+  @apply translate-x-0;
+}
+
+.navbar-mobile-menu-closed {
+  @apply translate-x-full;
+}
+
+.navbar-mobile-header {
+  @apply flex items-center justify-between p-4 border-b border-gray-200;
+}
+
+.navbar-mobile-close {
+  @apply p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100;
+}
+
+.navbar-mobile-links {
+  @apply px-4 py-2 space-y-1;
+}
+
+.navbar-mobile-link {
+  @apply block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50;
+}
+
+.navbar-notification {
+  @apply relative;
+}
+
+.navbar-notification-badge {
+  @apply absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center;
+}
+
+.navbar-notification-dropdown {
+  @apply absolute right-0 mt-2 w-80 bg-white rounded-md shadow-lg py-1 z-50;
+}
+
+.navbar-notification-item {
+  @apply px-4 py-3 hover:bg-gray-50 transition-colors duration-200;
+}
+
+.navbar-notification-item-unread {
+  @apply bg-blue-50;
+}
+
+.navbar-notification-content {
+  @apply text-sm text-gray-700;
+}
+
+.navbar-notification-time {
+  @apply text-xs text-gray-500 mt-1;
+} 

@@ -1,0 +1,123 @@
+.cart-container {
+  @apply container mx-auto px-4 py-8;
+}
+
+.cart-header {
+  @apply mb-8;
+}
+
+.cart-title {
+  @apply text-3xl font-bold text-gray-900 mb-4;
+}
+
+.cart-content {
+  @apply grid grid-cols-1 lg:grid-cols-3 gap-8;
+}
+
+.cart-items {
+  @apply lg:col-span-2;
+}
+
+.cart-item {
+  @apply cart-item;
+}
+
+.cart-item-image {
+  @apply cart-item-image;
+}
+
+.cart-item-details {
+  @apply flex-1 ml-4;
+}
+
+.cart-item-title {
+  @apply text-lg font-medium text-gray-900;
+}
+
+.cart-item-price {
+  @apply text-blue-600 font-semibold mt-1;
+}
+
+.cart-item-quantity {
+  @apply flex items-center mt-2;
+}
+
+.cart-item-quantity-button {
+  @apply p-1 rounded-md bg-gray-100 hover:bg-gray-200;
+}
+
+.cart-item-quantity-input {
+  @apply w-12 text-center input;
+}
+
+.cart-item-remove {
+  @apply text-red-500 hover:text-red-600 ml-4;
+}
+
+.cart-summary {
+  @apply lg:col-span-1;
+}
+
+.cart-summary-card {
+  @apply card;
+}
+
+.cart-summary-title {
+  @apply text-xl font-semibold mb-4;
+}
+
+.cart-summary-row {
+  @apply flex justify-between py-2 border-b border-gray-200;
+}
+
+.cart-summary-total {
+  @apply flex justify-between py-4 font-bold text-lg;
+}
+
+.cart-summary-button {
+  @apply btn btn-primary w-full mt-4;
+}
+
+.cart-empty {
+  @apply text-center py-12;
+}
+
+.cart-empty-text {
+  @apply text-gray-500 text-lg mb-4;
+}
+
+.cart-empty-button {
+  @apply btn btn-primary;
+}
+
+.cart-loading {
+  @apply space-y-4;
+}
+
+.cart-loading-item {
+  @apply flex items-center p-4 bg-white rounded-lg shadow;
+}
+
+.cart-loading-image {
+  @apply w-20 h-20 loading rounded-md;
+}
+
+.cart-loading-content {
+  @apply flex-1 ml-4;
+}
+
+.cart-loading-title {
+  @apply h-6 loading-text;
+}
+
+.cart-loading-price {
+  @apply h-4 loading-text mt-2;
+}
+
+.cart-error {
+  @apply alert alert-error;
+}
+
+.cart-success {
+  @apply alert alert-success;
+} 
