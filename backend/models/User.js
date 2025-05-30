@@ -21,8 +21,9 @@ const userSchema = new mongoose.Schema({
   },
   role: {
     type: String,
-    enum: ['customer', 'shop_owner', 'admin'],
-    default: 'customer'
+    enum: ['customer', 'shopkeeper', 'admin'],
+    default: 'customer',
+    required: true
   },
   phone: {
     type: String,
@@ -79,4 +80,4 @@ userSchema.methods.getPublicProfile = function() {
 
 const User = mongoose.model('User', userSchema);
 
-module.exports = User; 
+module.exports = User;

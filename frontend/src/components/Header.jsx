@@ -1,62 +1,52 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import './Header.css';
 
 const Header = () => {
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
-  const handleLogout = async () => {
-    try {
-      await logout();
-      navigate('/login');
-    } catch (error) {
-      console.error('Logout failed:', error);
-    }
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
   };
 
   return (
     <header className="header">
       <div className="header-container">
         <Link to="/" className="logo">
-          CConnect
+          Customer Connect
         </Link>
 
-        <button 
-          className={`menu-toggle ${isMenuOpen ? 'active' : ''}`}
-          onClick={() => setIsMenuOpen(!isMenuOpen)}
-        >
-          <span></span>
-          <span></span>
-          <span></span>
-        </button>
-
-        <nav className={`nav-menu ${isMenuOpen ? 'active' : ''}`}>
-          <ul>
-            <li><Link to="/" onClick={() => setIsMenuOpen(false)}>Home</Link></li>
-            <li><Link to="/customers" onClick={() => setIsMenuOpen(false)}>Customers</Link></li>
-            <li><Link to="/analytics" onClick={() => setIsMenuOpen(false)}>Analytics</Link></li>
-            <li><Link to="/reports" onClick={() => setIsMenuOpen(false)}>Reports</Link></li>
-          </ul>
-        </nav>
-
-        <div className="auth-buttons">
+        <nav className="nav-menu">
           {user ? (
-            <div className="user-menu">
-              <span className="user-name">{user.name}</span>
-              <button onClick={handleLogout} className="logout-btn">
-                Logout
-              </button>
-            </div>
+            <>
+              <Link to="/" className="nav-link">Home</Link>
+              <Link to="/groceries" className="nav-link">Shop</Link>
+              <Link to="/orders" className="nav-link">Orders</Link>
+              {user.role === 'shopkeeper' && (
+                <>
+                  <Link to="/products" className="nav-link">Products</Link>
+                  <Link to="/customers" className="nav-link">Customers</Link>
+                  <Link to="/analytics" className="nav-link">Analytics</Link>
+                  <Link to="/reports" className="nav-link">Reports</Link>
+                </>
+              )}
+              <div className="user-menu">
+                <span className="user-name">Welcome, {user.name}</span>
+                <button onClick={handleLogout} className="logout-btn">
+                  Logout
+                </button>
+              </div>
+            </>
           ) : (
             <>
-              <Link to="/login" className="login-btn">Login</Link>
-              <Link to="/register" className="register-btn">Register</Link>
+              <Link to="/login" className="nav-link">Login</Link>
+              <Link to="/register" className="nav-link">Register</Link>
             </>
           )}
-        </div>
+        </nav>
       </div>
     </header>
   );

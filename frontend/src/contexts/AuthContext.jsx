@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import axios from 'axios';
+import { authService } from '../services/api';
 
 const AuthContext = createContext(null);
 
@@ -14,11 +14,11 @@ export const useAuth = () => {
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (token) {
-      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
       checkAuth();
     } else {
       setLoading(false);
@@ -27,44 +27,54 @@ export const AuthProvider = ({ children }) => {
 
   const checkAuth = async () => {
     try {
-      const response = await axios.get('https://customer-connect-deploy.onrender.com/api/auth/me');
-      setUser(response.data);
+      const userData = await authService.checkAuth();
+      setUser(userData);
     } catch (error) {
+      console.error('Auth check failed:', error);
       localStorage.removeItem('token');
-      delete axios.defaults.headers.common['Authorization'];
+      setUser(null);
     } finally {
       setLoading(false);
     }
   };
 
-  const login = async (email, password) => {
-    const response = await axios.post('https://customer-connect-deploy.onrender.com/api/auth/login', {
-      email,
-      password
-    });
-    const { token, ...userData } = response.data;
-    localStorage.setItem('token', token);
-    axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-    setUser(userData);
-    return userData;
+  const login = async (email, password, role) => {
+    try {
+      setError(null);
+      const response = await authService.login({ email, password });
+      const { token, user: userData } = response.data;
+      
+      // Check if the user's role matches the selected role
+      if (userData.role !== role) {
+        authService.logout(); // Clear the token if role doesn't match
+        throw new Error('Invalid role selected');
+      }
+      
+      setUser(userData);
+      return userData;
+    } catch (error) {
+      console.error('Login failed:', error);
+      setError(error.response?.data?.message || error.message || 'Login failed');
+      throw error;
+    }
   };
 
-  const register = async (name, email, password) => {
-    const response = await axios.post('https://customer-connect-deploy.onrender.com/api/auth/register', {
-      name,
-      email,
-      password
-    });
-    const { token, ...userData } = response.data;
-    localStorage.setItem('token', token);
-    axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-    setUser(userData);
-    return userData;
+  const register = async (name, email, password, role) => {
+    try {
+      setError(null);
+      const response = await authService.register({ name, email, password, role });
+      const { token, ...userData } = response.data;
+      setUser(userData);
+      return userData;
+    } catch (error) {
+      console.error('Registration failed:', error);
+      setError(error.response?.data?.message || 'Registration failed');
+      throw error;
+    }
   };
 
   const logout = () => {
-    localStorage.removeItem('token');
-    delete axios.defaults.headers.common['Authorization'];
+    authService.logout();
     setUser(null);
   };
 
@@ -72,6 +82,7 @@ export const AuthProvider = ({ children }) => {
     user,
     currentUser: user,
     loading,
+    error,
     login,
     register,
     logout
@@ -84,4 +95,4 @@ export const AuthProvider = ({ children }) => {
   );
 };
 
-export default AuthContext; 
+export default AuthContext;

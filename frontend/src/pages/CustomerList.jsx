@@ -1,9 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import axios from 'axios';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
+import api from '../services/api';
 import './CustomerList.css';
 
 const CustomerList = () => {
+  const { user } = useAuth();
+  const navigate = useNavigate();
   const [customers, setCustomers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -11,15 +14,30 @@ const CustomerList = () => {
   const [filter, setFilter] = useState('all');
 
   useEffect(() => {
+    if (!user) {
+      navigate('/login');
+      return;
+    }
     fetchCustomers();
-  }, []);
+  }, [user, navigate]);
 
   const fetchCustomers = async () => {
     try {
-      const response = await axios.get('https://customer-connect-deploy.onrender.com/api/customers');
-      setCustomers(response.data);
+      setLoading(true);
+      setError('');
+      const response = await api.get('/customers');
+      if (response.data) {
+        setCustomers(response.data);
+      } else {
+        setCustomers([]);
+      }
     } catch (err) {
-      setError('Failed to fetch customers');
+      console.error('Error fetching customers:', err);
+      if (err.response?.status === 401) {
+        navigate('/login');
+      } else {
+        setError(err.response?.data?.message || 'Failed to fetch customers');
+      }
     } finally {
       setLoading(false);
     }
@@ -36,6 +54,18 @@ const CustomerList = () => {
     return (
       <div className="loading-container">
         <div className="spinner"></div>
+        <p>Loading customers...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="error-container">
+        <div className="error">{error}</div>
+        <button onClick={fetchCustomers} className="retry-btn">
+          Retry
+        </button>
       </div>
     );
   }
@@ -46,8 +76,6 @@ const CustomerList = () => {
         <h1>Customers</h1>
         <Link to="/customers/new" className="btn btn-primary">Add Customer</Link>
       </div>
-
-      {error && <div className="alert alert-error">{error}</div>}
 
       <div className="customer-list-filters">
         <div className="search-box">
@@ -74,7 +102,7 @@ const CustomerList = () => {
 
       <div className="customer-list">
         {filteredCustomers.length === 0 ? (
-          <div className="no-customers">
+          <div className="empty-state">
             <p>No customers found</p>
           </div>
         ) : (

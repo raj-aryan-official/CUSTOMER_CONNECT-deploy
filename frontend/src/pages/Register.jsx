@@ -1,117 +1,157 @@
-import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
-import './Auth.css';
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { authService } from "../services/api";
+import "./register.css";
 
 const Register = () => {
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    password: '',
-    confirmPassword: ''
-  });
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
-  const { register } = useAuth();
   const navigate = useNavigate();
+  const [formData, setFormData] = useState({
+    name: "",
+    email: "",
+    password: "",
+    role: "customer"
+  });
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value
-    });
+    const { name, value } = e.target;
+    setFormData(prevData => ({
+      ...prevData,
+      [name]: value
+    }));
+  };
+
+  const validateForm = () => {
+    if (!formData.name.trim()) {
+      setError("Name is required");
+      return false;
+    }
+    if (!formData.email.trim()) {
+      setError("Email is required");
+      return false;
+    }
+    if (!formData.email.includes('@')) {
+      setError("Invalid email format");
+      return false;
+    }
+    if (!formData.password) {
+      setError("Password is required");
+      return false;
+    }
+    if (formData.password.length < 6) {
+      setError("Password must be at least 6 characters long");
+      return false;
+    }
+    return true;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError('');
-
-    if (formData.password !== formData.confirmPassword) {
-      return setError('Passwords do not match');
+    setError("");
+    
+    if (!validateForm()) {
+      return;
     }
 
     setLoading(true);
-
     try {
-      await register(formData.name, formData.email, formData.password);
-      navigate('/customers');
+      console.log('Submitting registration data:', formData);
+      const response = await authService.register(formData);
+      console.log('Registration response:', response.data);
+      
+      // Store the token
+      if (response.data.token) {
+        localStorage.setItem('token', response.data.token);
+      }
+
+      // Redirect based on role
+      if (formData.role === "shopkeeper") {
+        navigate("/shopkeeperdashboard");
+      } else {
+        navigate("/customerdashboard");
+      }
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to register');
+      console.error('Registration error:', err.response?.data || err.message);
+      setError(
+        err.response?.data?.message || 
+        err.response?.data?.error || 
+        "Registration failed. Please try again."
+      );
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="auth-container">
-      <div className="auth-card">
-        <h1>Register</h1>
-        {error && <div className="alert alert-error">{error}</div>}
+    <div className="register-container">
+      <div className="register-card">
+        <h2>Register</h2>
+        {error && <div className="alert-error">{error}</div>}
         <form onSubmit={handleSubmit}>
           <div className="form-group">
-            <label htmlFor="name" className="form-label">Name</label>
+            <label htmlFor="name">Name:</label>
             <input
-              type="text"
               id="name"
+              type="text"
               name="name"
-              className="form-input"
               value={formData.name}
               onChange={handleChange}
+              placeholder="Enter your name"
+              disabled={loading}
               required
             />
           </div>
           <div className="form-group">
-            <label htmlFor="email" className="form-label">Email</label>
+            <label htmlFor="email">Email:</label>
             <input
-              type="email"
               id="email"
+              type="email"
               name="email"
-              className="form-input"
               value={formData.email}
               onChange={handleChange}
+              placeholder="Enter your email"
+              disabled={loading}
               required
             />
           </div>
           <div className="form-group">
-            <label htmlFor="password" className="form-label">Password</label>
+            <label htmlFor="password">Password:</label>
             <input
-              type="password"
               id="password"
+              type="password"
               name="password"
-              className="form-input"
               value={formData.password}
               onChange={handleChange}
+              placeholder="Enter your password"
+              disabled={loading}
               required
-              minLength="6"
             />
           </div>
           <div className="form-group">
-            <label htmlFor="confirmPassword" className="form-label">Confirm Password</label>
-            <input
-              type="password"
-              id="confirmPassword"
-              name="confirmPassword"
-              className="form-input"
-              value={formData.confirmPassword}
+            <label htmlFor="role">Role:</label>
+            <select
+              id="role"
+              name="role"
+              value={formData.role}
               onChange={handleChange}
-              required
-              minLength="6"
-            />
+              disabled={loading}
+            >
+              <option value="customer">Customer</option>
+              <option value="shopkeeper">Shopkeeper</option>
+            </select>
           </div>
-          <button
-            type="submit"
-            className="btn btn-primary"
+          <button 
+            type="submit" 
+            className="submit-btn"
             disabled={loading}
           >
-            {loading ? <div className="spinner"></div> : 'Register'}
+            {loading ? "Registering..." : "Register"}
           </button>
         </form>
-        <p className="auth-link">
-          Already have an account? <Link to="/login">Login</Link>
-        </p>
       </div>
     </div>
   );
 };
 
-export default Register; 
+export default Register;

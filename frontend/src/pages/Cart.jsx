@@ -1,192 +1,216 @@
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useCart } from '../contexts/CartContext';
 import { useAuth } from '../contexts/AuthContext';
-import toast from 'react-hot-toast';
+import { useNavigate } from 'react-router-dom';
+import './Cart.css';
 
 const Cart = () => {
-  const [cartItems, setCartItems] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const navigate = useNavigate();
+  const { cart, removeFromCart, updateQuantity, getCartTotal, clearCart } = useCart();
   const { user } = useAuth();
+  const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [shopkeepers, setShopkeepers] = useState([]);
+  const [selectedShopkeeper, setSelectedShopkeeper] = useState('');
+  const [showShopkeeperModal, setShowShopkeeperModal] = useState(false);
 
   useEffect(() => {
-    const fetchCart = async () => {
-      try {
-        const response = await fetch('http://localhost:5000/api/cart', {
-          headers: {
-            Authorization: `Bearer ${user.token}`,
-          },
-        });
-        const data = await response.json();
+    fetchShopkeepers();
+  }, []);
 
-        if (!response.ok) {
-          throw new Error(data.message);
+  const fetchShopkeepers = async () => {
+    try {
+      const response = await fetch('https://customer-connect-deploy.onrender.com/api/users/shopkeepers', {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
-
-        setCartItems(data);
-      } catch (error) {
-        setError(error.message);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchCart();
-  }, [user]);
-
-  const handleUpdateQuantity = async (productId, newQuantity) => {
-    try {
-      const response = await fetch(`http://localhost:5000/api/cart/${productId}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${user.token}`,
-        },
-        body: JSON.stringify({ quantity: newQuantity }),
       });
-
-      const data = await response.json();
-
       if (!response.ok) {
-        throw new Error(data.message);
+        throw new Error('Failed to fetch shopkeepers');
       }
-
-      setCartItems(
-        cartItems.map((item) =>
-          item.product._id === productId
-            ? { ...item, quantity: newQuantity }
-            : item
-        )
-      );
-    } catch (error) {
-      toast.error(error.message);
+      const data = await response.json();
+      setShopkeepers(data);
+    } catch (err) {
+      console.error('Error fetching shopkeepers:', err);
+      setError('Failed to load shopkeepers. Please try again.');
     }
   };
 
-  const handleRemoveItem = async (productId) => {
-    try {
-      const response = await fetch(`http://localhost:5000/api/cart/${productId}`, {
-        method: 'DELETE',
-        headers: {
-          Authorization: `Bearer ${user.token}`,
-        },
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message);
-      }
-
-      setCartItems(cartItems.filter((item) => item.product._id !== productId));
-      toast.success('Item removed from cart');
-    } catch (error) {
-      toast.error(error.message);
+  const handleQuantityChange = (productId, newQuantity) => {
+    if (newQuantity >= 1) {
+      updateQuantity(productId, newQuantity);
     }
   };
 
-  const handleCheckout = async () => {
+  const handlePlaceOrder = async () => {
+    if (!user) {
+      navigate('/login');
+      return;
+    }
+
+    if (!selectedShopkeeper) {
+      setShowShopkeeperModal(true);
+      return;
+    }
+
     try {
-      const response = await fetch('http://localhost:5000/api/orders', {
+      setLoading(true);
+      setError(null);
+
+      const orderData = {
+        customerId: user.id,
+        shopkeeperId: selectedShopkeeper,
+        items: cart.map(item => ({
+          productId: item.id,
+          quantity: item.quantity,
+          price: item.price
+        })),
+        totalAmount: getCartTotal(),
+        status: 'pending'
+      };
+
+      const response = await fetch('https://customer-connect-deploy.onrender.com/api/orders', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${user.token}`,
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
         },
-        body: JSON.stringify({
-          items: cartItems.map((item) => ({
-            product: item.product._id,
-            quantity: item.quantity,
-            price: item.product.price,
-          })),
-        }),
+        body: JSON.stringify(orderData)
       });
 
-      const data = await response.json();
-
       if (!response.ok) {
-        throw new Error(data.message);
+        throw new Error('Failed to place order');
       }
 
-      setCartItems([]);
-      toast.success('Order placed successfully!');
+      // Clear the cart after successful order placement
+      clearCart();
       navigate('/orders');
-    } catch (error) {
-      toast.error(error.message);
+    } catch (err) {
+      console.error('Error placing order:', err);
+      setError('Failed to place order. Please try again.');
+    } finally {
+      setLoading(false);
     }
   };
 
-  if (loading) {
-    return <div className="text-center">Loading...</div>;
+  if (cart.length === 0) {
+    return (
+      <div className="cart-empty">
+        <h2>Your cart is empty</h2>
+        <p>Add some products to your cart to continue shopping.</p>
+        <button onClick={() => navigate('/groceries')} className="btn btn-primary">
+          Continue Shopping
+        </button>
+      </div>
+    );
   }
-
-  if (error) {
-    return <div className="text-center text-red-500">{error}</div>;
-  }
-
-  const total = cartItems.reduce(
-    (sum, item) => sum + item.product.price * item.quantity,
-    0
-  );
 
   return (
-    <div className="max-w-4xl mx-auto">
-      <h2 className="text-2xl font-bold mb-6">Shopping Cart</h2>
-      {cartItems.length === 0 ? (
-        <div className="text-center text-gray-500">Your cart is empty</div>
-      ) : (
-        <>
-          <div className="bg-white rounded-lg shadow-md overflow-hidden mb-6">
-            {cartItems.map((item) => (
-              <div
-                key={item.product._id}
-                className="flex items-center p-4 border-b last:border-b-0"
-              >
-                <img
-                  src={item.product.image}
-                  alt={item.product.name}
-                  className="w-20 h-20 object-cover rounded"
-                />
-                <div className="flex-1 ml-4">
-                  <h3 className="text-lg font-semibold">{item.product.name}</h3>
-                  <p className="text-gray-600">${item.product.price}</p>
-                </div>
-                <div className="flex items-center space-x-4">
-                  <input
-                    type="number"
-                    min="1"
-                    value={item.quantity}
-                    onChange={(e) =>
-                      handleUpdateQuantity(item.product._id, parseInt(e.target.value))
-                    }
-                    className="w-20 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                  />
-                  <button
-                    onClick={() => handleRemoveItem(item.product._id)}
-                    className="text-red-500 hover:text-red-700"
-                  >
-                    Remove
-                  </button>
-                </div>
+    <div className="cart-container">
+      <h1>Shopping Cart</h1>
+      
+      {error && (
+        <div className="error-message">
+          {error}
+        </div>
+      )}
+
+      <div className="cart-items">
+        {cart.map(item => (
+          <div key={item.id} className="cart-item">
+            <div className="item-image">
+              <img src={item.thumbnail} alt={item.title} />
+            </div>
+            <div className="item-details">
+              <h3>{item.title}</h3>
+              <p className="item-price">${item.price.toFixed(2)}</p>
+              <div className="quantity-controls">
+                <button
+                  onClick={() => handleQuantityChange(item.id, item.quantity - 1)}
+                  className="quantity-btn"
+                >
+                  -
+                </button>
+                <span className="quantity">{item.quantity}</span>
+                <button
+                  onClick={() => handleQuantityChange(item.id, item.quantity + 1)}
+                  className="quantity-btn"
+                >
+                  +
+                </button>
               </div>
-            ))}
-          </div>
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <div className="flex justify-between items-center mb-4">
-              <span className="text-lg font-semibold">Total:</span>
-              <span className="text-2xl font-bold text-blue-600">
-                ${total.toFixed(2)}
-              </span>
+            </div>
+            <div className="item-total">
+              ${(item.price * item.quantity).toFixed(2)}
             </div>
             <button
-              onClick={handleCheckout}
-              className="w-full bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600"
+              onClick={() => removeFromCart(item.id)}
+              className="remove-btn"
             >
-              Proceed to Checkout
+              Remove
             </button>
           </div>
-        </>
+        ))}
+      </div>
+
+      <div className="cart-summary">
+        <div className="summary-row">
+          <span>Subtotal:</span>
+          <span>${getCartTotal().toFixed(2)}</span>
+        </div>
+        <div className="summary-row">
+          <span>Shipping:</span>
+          <span>Free</span>
+        </div>
+        <div className="summary-row total">
+          <span>Total:</span>
+          <span>${getCartTotal().toFixed(2)}</span>
+        </div>
+        <button
+          onClick={handlePlaceOrder}
+          className="btn btn-primary place-order-btn"
+          disabled={loading}
+        >
+          {loading ? 'Placing Order...' : 'Place Order'}
+        </button>
+      </div>
+
+      {showShopkeeperModal && (
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <h2>Select a Shopkeeper</h2>
+            <div className="shopkeeper-list">
+              {shopkeepers.map(shopkeeper => (
+                <div
+                  key={shopkeeper.id}
+                  className={`shopkeeper-item ${selectedShopkeeper === shopkeeper.id ? 'selected' : ''}`}
+                  onClick={() => setSelectedShopkeeper(shopkeeper.id)}
+                >
+                  <h3>{shopkeeper.name}</h3>
+                  <p>{shopkeeper.email}</p>
+                </div>
+              ))}
+            </div>
+            <div className="modal-actions">
+              <button
+                onClick={() => setShowShopkeeperModal(false)}
+                className="btn btn-secondary"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  setShowShopkeeperModal(false);
+                  handlePlaceOrder();
+                }}
+                className="btn btn-primary"
+                disabled={!selectedShopkeeper}
+              >
+                Confirm
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

@@ -11,7 +11,7 @@ const auth = require('../middleware/auth');
 // @access  Public
 router.post('/register', validateUser, async (req, res) => {
   try {
-    const { name, email, password } = req.body;
+    const { name, email, password, role } = req.body;
 
     // Check if user exists
     let user = await User.findOne({ email });
@@ -23,7 +23,8 @@ router.post('/register', validateUser, async (req, res) => {
     user = new User({
       name,
       email,
-      password
+      password,
+      role
     });
 
     // Hash password
@@ -60,17 +61,26 @@ router.post('/register', validateUser, async (req, res) => {
 // @access  Public
 router.post('/login', async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { email, password, role } = req.body;
+    console.log('Login attempt for:', email, 'with role:', role);
 
     // Check if user exists
     const user = await User.findOne({ email });
     if (!user) {
+      console.log('User not found:', email);
       return res.status(400).json({ message: 'Invalid credentials' });
+    }
+
+    // Check if role matches
+    if (user.role !== role) {
+      console.log('Role mismatch for:', email, 'Expected:', role, 'Got:', user.role);
+      return res.status(400).json({ message: 'Invalid role for this account' });
     }
 
     // Check password
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
+      console.log('Invalid password for:', email);
       return res.status(400).json({ message: 'Invalid credentials' });
     }
 
@@ -86,12 +96,27 @@ router.post('/login', async (req, res) => {
       process.env.JWT_SECRET,
       { expiresIn: '24h' },
       (err, token) => {
-        if (err) throw err;
-        res.json({ token });
+        if (err) {
+          console.error('Token generation error:', err);
+          return res.status(500).json({ message: 'Server error' });
+        }
+        
+        const userResponse = {
+          _id: user._id,
+          name: user.name,
+          email: user.email,
+          role: user.role
+        };
+        
+        console.log('Login successful for:', email, 'Role:', user.role);
+        res.json({
+          token,
+          user: userResponse
+        });
       }
     );
   } catch (error) {
-    console.error(error.message);
+    console.error('Login error:', error);
     res.status(500).json({ message: 'Server error' });
   }
 });
@@ -109,4 +134,4 @@ router.get('/user', auth, async (req, res) => {
   }
 });
 
-module.exports = router; 
+module.exports = router;

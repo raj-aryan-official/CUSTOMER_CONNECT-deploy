@@ -8,6 +8,7 @@ const Login = () => {
     email: '',
     password: ''
   });
+  const [role, setRole] = useState("customer");
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
@@ -22,14 +23,27 @@ const Login = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError('');
+    setError("");
     setLoading(true);
-
     try {
-      await login(formData.email, formData.password);
-      navigate('/customers');
+      const loginData = {
+        email: formData.email,
+        password: formData.password,
+        role: role  // Include role in login data
+      };
+      console.log('Login data being sent:', loginData);
+      const user = await login(loginData.email, loginData.password, loginData.role);
+      console.log('Login successful, user data:', user);
+      
+      // Redirect based on role
+      if (user.role === "shopkeeper") {
+        navigate("/shopkeeperdashboard");
+      } else {
+        navigate("/customerdashboard");
+      }
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to login');
+      console.error('Login error in component:', err);
+      setError(err.response?.data?.message || err.message || "Failed to login. Please check your credentials.");
     } finally {
       setLoading(false);
     }
@@ -65,6 +79,20 @@ const Login = () => {
               required
             />
           </div>
+          <div className="form-group">
+            <label htmlFor="role" className="form-label">Role</label>
+            <select
+              id="role"
+              name="role"
+              className="form-input"
+              value={role}
+              onChange={e => setRole(e.target.value)}
+              required
+            >
+              <option value="customer">Customer</option>
+              <option value="shopkeeper">Shopkeeper</option>
+            </select>
+          </div>
           <button
             type="submit"
             className="btn btn-primary"
@@ -81,4 +109,4 @@ const Login = () => {
   );
 };
 
-export default Login; 
+export default Login;
