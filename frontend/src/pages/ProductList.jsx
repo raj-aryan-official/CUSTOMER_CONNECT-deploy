@@ -22,7 +22,7 @@ const ProductList = () => {
       if (searchTerm) params.append('search', searchTerm);
       if (sort) params.append('sort', sort);
 
-      const response = await axios.get(`http://localhost:5000/api/products?${params}`);
+      const response = await axios.get(`https://customer-connect-deploy.onrender.com/api/products?${params}`);
       setProducts(response.data);
     } catch (err) {
       setError('Failed to fetch products');

@@ -16,7 +16,7 @@ const CustomerList = () => {
 
   const fetchCustomers = async () => {
     try {
-      const response = await axios.get('http://localhost:5000/api/customers');
+      const response = await axios.get('https://customer-connect-deploy.onrender.com/api/customers');
       setCustomers(response.data);
     } catch (err) {
       setError('Failed to fetch customers');

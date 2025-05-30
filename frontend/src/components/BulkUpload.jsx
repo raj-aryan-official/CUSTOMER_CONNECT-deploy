@@ -38,7 +38,7 @@ const BulkUpload = () => {
 
     try {
       const response = await axios.post(
-        'http://localhost:5000/api/products/bulk-upload',
+        'https://customer-connect-deploy.onrender.com/api/products/bulk-upload',
         formData,
         {
           headers: {

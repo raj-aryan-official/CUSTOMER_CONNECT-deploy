@@ -12,12 +12,12 @@ const AdminDashboard = () => {
     const fetchData = async () => {
       try {
         const [ordersRes, productsRes] = await Promise.all([
-          fetch('http://localhost:5000/api/orders', {
+          fetch('https://customer-connect-deploy.onrender.com/api/orders', {
             headers: {
               Authorization: `Bearer ${user.token}`,
             },
           }),
-          fetch('http://localhost:5000/api/products', {
+          fetch('https://customer-connect-deploy.onrender.com/api/products', {
             headers: {
               Authorization: `Bearer ${user.token}`,
             },
@@ -43,7 +43,7 @@ const AdminDashboard = () => {
 
   const handleUpdateOrderStatus = async (orderId, status) => {
     try {
-      const response = await fetch(`http://localhost:5000/api/orders/${orderId}/status`, {
+      const response = await fetch(`https://customer-connect-deploy.onrender.com/api/orders/${orderId}/status`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -62,7 +62,7 @@ const AdminDashboard = () => {
       ));
 
       // Create notification for customer
-      await fetch('http://localhost:5000/api/notifications', {
+      await fetch('https://customer-connect-deploy.onrender.com/api/notifications', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
