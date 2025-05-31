@@ -12,6 +12,12 @@ const auth = require('../middleware/auth');
 router.post('/register', validateUser, async (req, res) => {
   try {
     const { name, email, password, role } = req.body;
+    console.log('Registration attempt for:', email, 'with role:', role);
+
+    // Validate role
+    if (!['customer', 'shopkeeper'].includes(role)) {
+      return res.status(400).json({ message: 'Invalid role' });
+    }
 
     // Check if user exists
     let user = await User.findOne({ email });
@@ -21,18 +27,15 @@ router.post('/register', validateUser, async (req, res) => {
 
     // Create new user
     user = new User({
-      name,
-      email,
-      password,
+      name: name.trim(),
+      email: email.trim().toLowerCase(),
+      password: password.trim(),
       role
     });
 
-    // Hash password
-    const salt = await bcrypt.genSalt(10);
-    user.password = await bcrypt.hash(password, salt);
-
     // Save user
     await user.save();
+    console.log('User saved successfully:', user.email);
 
     // Create JWT token
     const payload = {
@@ -46,13 +49,28 @@ router.post('/register', validateUser, async (req, res) => {
       process.env.JWT_SECRET,
       { expiresIn: '24h' },
       (err, token) => {
-        if (err) throw err;
-        res.json({ token });
+        if (err) {
+          console.error('Token generation error:', err);
+          return res.status(500).json({ message: 'Server error' });
+        }
+        
+        const userResponse = {
+          _id: user._id,
+          name: user.name,
+          email: user.email,
+          role: user.role
+        };
+        
+        console.log('Registration successful for:', email, 'Role:', user.role);
+        res.json({
+          token,
+          user: userResponse
+        });
       }
     );
   } catch (error) {
-    console.error(error.message);
-    res.status(500).json({ message: 'Server error' });
+    console.error('Registration error:', error);
+    res.status(500).json({ message: error.message || 'Server error' });
   }
 });
 
@@ -64,8 +82,18 @@ router.post('/login', async (req, res) => {
     const { email, password, role } = req.body;
     console.log('Login attempt for:', email, 'with role:', role);
 
+    // Validate inputs
+    if (!email || !password || !role) {
+      return res.status(400).json({ message: 'All fields are required' });
+    }
+
+    // Validate role
+    if (!['customer', 'shopkeeper'].includes(role)) {
+      return res.status(400).json({ message: 'Invalid role' });
+    }
+
     // Check if user exists
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ email: email.trim().toLowerCase() });
     if (!user) {
       console.log('User not found:', email);
       return res.status(400).json({ message: 'Invalid credentials' });
@@ -78,11 +106,15 @@ router.post('/login', async (req, res) => {
     }
 
     // Check password
-    const isMatch = await bcrypt.compare(password, user.password);
+    const isMatch = await user.comparePassword(password);
     if (!isMatch) {
       console.log('Invalid password for:', email);
       return res.status(400).json({ message: 'Invalid credentials' });
     }
+
+    // Update last login
+    user.lastLogin = new Date();
+    await user.save();
 
     // Create JWT token
     const payload = {
@@ -117,7 +149,7 @@ router.post('/login', async (req, res) => {
     );
   } catch (error) {
     console.error('Login error:', error);
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: error.message || 'Server error' });
   }
 });
 

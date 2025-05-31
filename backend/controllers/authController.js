@@ -49,21 +49,30 @@ exports.register = async (req, res) => {
 exports.login = async (req, res) => {
   try {
     const { email, password } = req.body;
+    console.log('Login attempt for email:', email);
 
     // Check for user
     const user = await User.findOne({ email });
     if (!user) {
+      console.log('User not found:', email);
       return res.status(401).json({ message: 'Invalid credentials' });
     }
 
     // Check password
     const isMatch = await user.comparePassword(password);
+    console.log('Password match:', isMatch);
+    
     if (!isMatch) {
+      console.log('Password mismatch for user:', email);
       return res.status(401).json({ message: 'Invalid credentials' });
     }
 
     // Generate token
     const token = generateToken(user._id);
+
+    // Update last login
+    user.lastLogin = new Date();
+    await user.save();
 
     res.json({
       _id: user._id,
@@ -73,6 +82,7 @@ exports.login = async (req, res) => {
       token
     });
   } catch (error) {
+    console.error('Login error:', error);
     res.status(500).json({ message: error.message });
   }
 };

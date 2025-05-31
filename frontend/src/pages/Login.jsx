@@ -27,13 +27,14 @@ const Login = () => {
     setLoading(true);
     try {
       const loginData = {
-        email: formData.email,
+        email: formData.email.trim(),
         password: formData.password,
-        role: role  // Include role in login data
+        role: role
       };
-      console.log('Login data being sent:', loginData);
-      const user = await login(loginData.email, loginData.password, loginData.role);
-      console.log('Login successful, user data:', user);
+      console.log('Login Component: Sending login data:', loginData);
+      
+      const user = await login(loginData);
+      console.log('Login Component: Login successful, user data:', user);
       
       // Redirect based on role
       if (user.role === "shopkeeper") {
@@ -42,8 +43,8 @@ const Login = () => {
         navigate("/customerdashboard");
       }
     } catch (err) {
-      console.error('Login error in component:', err);
-      setError(err.response?.data?.message || err.message || "Failed to login. Please check your credentials.");
+      console.error('Login Component: Login error:', err);
+      setError(err.message || "Failed to login. Please check your credentials.");
     } finally {
       setLoading(false);
     }

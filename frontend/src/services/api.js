@@ -36,11 +36,46 @@ api.interceptors.response.use(
 export const authService = {
   login: async (credentials) => {
     try {
-      console.log('Sending login request with credentials:', credentials);
+      console.log('API Service: Sending login request with credentials:', {
+        email: credentials.email,
+        role: credentials.role
+      });
+      
       const response = await api.post('/auth/login', credentials);
-      console.log('Login response:', response.data);
+      console.log('API Service: Login response:', response.data);
       
       if (!response.data.token || !response.data.user) {
+        console.error('API Service: Invalid response format:', response.data);
+        throw new Error('Invalid response from server');
+      }
+      
+      // Store token
+      localStorage.setItem('token', response.data.token);
+      api.defaults.headers.common['Authorization'] = `Bearer ${response.data.token}`;
+      
+      return response.data;
+    } catch (error) {
+      console.error('API Service: Login error details:', {
+        status: error.response?.status,
+        data: error.response?.data,
+        message: error.message
+      });
+      
+      if (error.response?.status === 400) {
+        throw new Error(error.response.data.message || 'Invalid credentials');
+      }
+      
+      throw new Error(error.response?.data?.message || 'Login failed. Please try again.');
+    }
+  },
+
+  register: async (userData) => {
+    try {
+      console.log('Sending registration request:', userData);
+      const response = await api.post('/auth/register', userData);
+      console.log('Registration response:', response.data);
+      
+      if (!response.data.token) {
         console.error('Invalid response format:', response.data);
         throw new Error('Invalid response from server');
       }
@@ -49,34 +84,20 @@ export const authService = {
       localStorage.setItem('token', response.data.token);
       api.defaults.headers.common['Authorization'] = `Bearer ${response.data.token}`;
       
-      return response;
-    } catch (error) {
-      console.error('Login error details:', {
-        status: error.response?.status,
-        data: error.response?.data,
-        message: error.message
-      });
+      // If user data is not in response, create it from the registration data
+      const userResponse = response.data.user || {
+        name: userData.name,
+        email: userData.email,
+        role: userData.role
+      };
       
-      // Handle specific error cases
-      if (error.response?.status === 400) {
-        throw new Error(error.response.data.message || 'Invalid credentials');
-      }
-      
-      throw error;
-    }
-  },
-
-  register: async (userData) => {
-    try {
-      const response = await api.post('/auth/register', userData);
-      if (response.data.token) {
-        localStorage.setItem('token', response.data.token);
-        api.defaults.headers.common['Authorization'] = `Bearer ${response.data.token}`;
-      }
-      return response;
+      return {
+        token: response.data.token,
+        user: userResponse
+      };
     } catch (error) {
       console.error('Registration error:', error.response?.data || error.message);
-      throw error;
+      throw new Error(error.response?.data?.message || 'Registration failed');
     }
   },
 

@@ -21,7 +21,7 @@ const userSchema = new mongoose.Schema({
   },
   role: {
     type: String,
-    enum: ['customer', 'shopkeeper', 'admin'],
+    enum: ['customer', 'shopkeeper'],
     default: 'customer',
     required: true
   },
@@ -57,6 +57,13 @@ userSchema.pre('save', async function(next) {
   if (!this.isModified('password')) return next();
   
   try {
+    // Ensure password is a string and trim it
+    this.password = String(this.password).trim();
+    
+    if (!this.password) {
+      return next(new Error('Password cannot be empty'));
+    }
+    
     const salt = await bcrypt.genSalt(10);
     this.password = await bcrypt.hash(this.password, salt);
     next();
@@ -67,7 +74,29 @@ userSchema.pre('save', async function(next) {
 
 // Method to compare password
 userSchema.methods.comparePassword = async function(candidatePassword) {
-  return bcrypt.compare(candidatePassword, this.password);
+  try {
+    if (!candidatePassword || !this.password) {
+      console.log('Missing password for comparison');
+      return false;
+    }
+    
+    // Ensure both passwords are strings and trim them
+    const candidate = String(candidatePassword).trim();
+    const stored = String(this.password).trim();
+    
+    if (!candidate || !stored) {
+      console.log('Empty password after trimming');
+      return false;
+    }
+    
+    console.log('Comparing passwords for user:', this.email);
+    const isMatch = await bcrypt.compare(candidate, stored);
+    console.log('Password comparison result:', isMatch);
+    return isMatch;
+  } catch (error) {
+    console.error('Password comparison error:', error);
+    return false;
+  }
 };
 
 // Method to get public profile

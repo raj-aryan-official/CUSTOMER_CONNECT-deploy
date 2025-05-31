@@ -58,26 +58,17 @@ const Register = () => {
     try {
       console.log('Submitting registration data:', formData);
       const response = await authService.register(formData);
-      console.log('Registration response:', response.data);
+      console.log('Registration successful:', response);
       
-      // Store the token
-      if (response.data.token) {
-        localStorage.setItem('token', response.data.token);
-      }
-
       // Redirect based on role
-      if (formData.role === "shopkeeper") {
+      if (response.user.role === "shopkeeper") {
         navigate("/shopkeeperdashboard");
       } else {
         navigate("/customerdashboard");
       }
     } catch (err) {
-      console.error('Registration error:', err.response?.data || err.message);
-      setError(
-        err.response?.data?.message || 
-        err.response?.data?.error || 
-        "Registration failed. Please try again."
-      );
+      console.error('Registration error:', err);
+      setError(err.message || "Registration failed. Please try again.");
     } finally {
       setLoading(false);
     }

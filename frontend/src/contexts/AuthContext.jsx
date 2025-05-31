@@ -38,23 +38,34 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const login = async (email, password, role) => {
+  const login = async (loginData) => {
     try {
       setError(null);
-      const response = await authService.login({ email, password });
-      const { token, user: userData } = response.data;
+      console.log('AuthContext: Attempting login with:', loginData);
+      const response = await authService.login(loginData);
+      console.log('AuthContext: Login response:', response);
       
-      // Check if the user's role matches the selected role
-      if (userData.role !== role) {
-        authService.logout(); // Clear the token if role doesn't match
+      if (!response.user) {
+        throw new Error('Invalid response from server');
+      }
+      
+      // Check if the user's role is valid (customer or shopkeeper)
+      if (!['customer', 'shopkeeper'].includes(response.user.role)) {
+        authService.logout(); // Clear the token if role is invalid
+        throw new Error('Invalid role for this account');
+      }
+      
+      // If role is specified, check if it matches
+      if (loginData.role && response.user.role !== loginData.role) {
+        authService.logout();
         throw new Error('Invalid role selected');
       }
       
-      setUser(userData);
-      return userData;
+      setUser(response.user);
+      return response.user;
     } catch (error) {
       console.error('Login failed:', error);
-      setError(error.response?.data?.message || error.message || 'Login failed');
+      setError(error.message || 'Login failed');
       throw error;
     }
   };
